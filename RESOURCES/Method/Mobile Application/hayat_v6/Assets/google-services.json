@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "36486312006",
+    "firebase_url": "https://hayat-e233d-default-rtdb.firebaseio.com",
+    "project_id": "hayat-e233d",
+    "storage_bucket": "hayat-e233d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:36486312006:android:c5af2192c9411be1625a47",
+        "android_client_info": {
+          "package_name": "com.aei.life_"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCa-PjL_Zo7gCBXT98nK4-eIENiBAXNNdM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

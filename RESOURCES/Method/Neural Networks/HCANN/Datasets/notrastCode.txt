@@ -1,0 +1,570 @@
+	void a(int* b) {
+		*(b + 2) = 8;
+	}
+	
+	double d = 3.51;
+	int e = 2;
+	cout << fmod(d, e);
+	int randd = rand();
+	randd = rand();
+	//cout << randd;
+	int layerMap[4] = {4, 8, 4, 2};
+	double** input = new double*[4];
+	input[0] = new double[4]{1, 2, 3, 4};
+	input[1] = new double[4]{5, 6, 7, 8};
+	input[2] = new double[4]{9, 10, 11, 12};
+	input[3] = new double[4]{13, 14, 15, 16};
+	double** output = new double*[4];
+	output[0] = new double[2]{1, 2};
+	output[1] = new double[2]{3, 4};
+	output[2] = new double[2]{5, 6};
+	output[3] = new double[2]{7, 8};
+	int b[5] = {1, 2, 3, 4, 5};
+	int* c = &b[0];
+	a(c);
+	//cout << b[2];
+	//NN nolur(layerMap, 4, input, output, 4);
+	//cout << input[1][3];
+	
+	#include <iostream>
+#include <cmath>
+#include <cstdlib>
+
+using namespace std;
+
+class NN_Math {
+	public :
+		NN_Math(int actIndexI) {
+			actIndex = actIndexI;
+		}
+
+		double act(double i) {
+			if(actIndex == 0) {
+				return sigmoid(i);
+			}
+			else if(actIndex == 1) {
+				return step(i);
+			}
+			else if(actIndex == 2) {
+				return leakyRelu(i);
+			}
+			return -1;
+		}
+
+		double dAct(double i) {
+			if(actIndex == 0) {
+				return dSigmoid(i);
+			}
+			else if(actIndex == 1) {
+				return dStep();
+			}
+			else if(actIndex == 2) {
+				return dLeakyRelu(i);
+			}
+			return -1;
+		}
+
+	private :
+		int actIndex;
+		double leakyReluAlpha = 0.3;
+
+		double sigmoid(double i) {
+			return 1 / (1 + exp(-i));
+		}
+		double step(double i) {
+			return i < 0 ? 0 : (i == 0 ? 0.5 : 1);
+		}
+		double leakyRelu(double i) {
+			return i > 0 ? i : leakyReluAlpha * i;
+		}
+
+		double dSigmoid(double i) {
+			return sigmoid(i) * (1 - sigmoid(i));
+		}
+		double dStep() {
+			return 0;
+		}
+		double dLeakyRelu(double i) {
+			return i > 0 ? 1 : leakyReluAlpha;
+		}
+};
+
+class NN {
+	public :
+		NN(int* layerMapI, int lengthOfNNI, double** inputI, double** outputI, int dataLengthI, double minStartValues, double maxStartValues) {
+			lengthOfNN = lengthOfNNI;
+			//cout << lengthOfNN - 1 << "a";
+			inputLength = layerMapI[0];
+			cout << inputLength << "burada";
+			outputLength = layerMapI[lengthOfNN - 1];
+			dataLength = dataLengthI;
+			layerMap = new int[lengthOfNN];
+			equalArray(layerMap, layerMapI, lengthOfNN);
+			lengthOfWeights = new int[lengthOfNN - 1];
+			lengthOfNeurons = new int[lengthOfNN];
+			for(int i = 0; i < lengthOfNN; i++) {
+				lengthOfNeurons[i] = layerMap[i];
+			}
+			cout << lengthOfNeurons[0] << "hh";
+			weights = new double**[lengthOfNN - 1];
+			for(int i = 0; i < lengthOfNN - 1; i++) {
+				weights[i] = new double*[getMaxValue(layerMap, lengthOfNN)];
+				for(int j = 0; j < getMaxValue(layerMap, lengthOfNN); j++) {
+					weights[i][j] = new double[getMaxValue(layerMap, lengthOfNN)];
+				}
+			}
+			dWeights = new double**[lengthOfNN - 1];
+			for(int i = 0; i < lengthOfNN - 1; i++) {
+				dWeights[i] = new double*[getMaxValue(layerMap, lengthOfNN)];
+				for(int j = 0; j < getMaxValue(layerMap, lengthOfNN); j++) {
+					dWeights[i][j] = new double[getMaxValue(layerMap, lengthOfNN)];
+				}
+			}
+			for(int i = 0; i < lengthOfNN - 1; i++) {
+				for(int j = 0; j < getMaxValue(layerMap, lengthOfNN); j++) {
+					for(int k = 0; k < getMaxValue(layerMap, lengthOfNN); k++) {
+						dWeights[i][j][k] = 0;
+					}
+				}
+			}
+			neurons = new double*[lengthOfNN];
+			for(int i = 0; i < lengthOfNN; i++) {
+				neurons[i] = new double[getMaxValue(layerMap, lengthOfNN)];
+			}
+			for(int i = 0; i < lengthOfNN; i++) {
+				for(int j = 0; j < getMaxValue(layerMap, lengthOfNN); j++) {
+					neurons[i][j] = 0;
+				}
+			}
+			dNeurons = new double*[lengthOfNN];
+			for(int i = 0; i < lengthOfNN; i++) {
+				dNeurons[i] = new double[getMaxValue(layerMap, lengthOfNN)];
+			}
+			for(int i = 0; i < lengthOfNN; i++) {
+				for(int j = 0; j < getMaxValue(layerMap, lengthOfNN); j++) {
+					dNeurons[i][j] = 0;
+				}
+			}
+			eNeurons = new double*[lengthOfNN];
+			for(int i = 0; i < lengthOfNN; i++) {
+				eNeurons[i] = new double[getMaxValue(layerMap, lengthOfNN)];
+			}
+			for(int i = 0; i < lengthOfNN; i++) {
+				for(int j = 0; j < getMaxValue(layerMap, lengthOfNN); j++) {
+					eNeurons[i][j] = 0;
+				}
+			}
+			input = new double*[dataLength];
+			for(int i = 0; i < dataLength; i++) {
+				input[i] = new double[inputLength];
+			}
+			output = new double*[dataLength];
+			for(int i = 0; i < dataLength; i++) {
+				output[i] = new double[outputLength];
+			}
+			outputT = new double*[dataLength];
+			for(int i = 0; i < dataLength; i++) {
+				outputT[i] = new double[outputLength];
+			}
+			for(int i = 0; i < dataLength; i++) {
+				for(int j = 0; j < inputLength; j++) {
+					input[i][j] = inputI[i][j];
+					cout << inputI[i][1] << "e";
+				}
+				for(int j = 0; j < outputLength; j++) {
+					output[i][j] = 0;
+				}
+				for(int j = 0; j < outputLength; j++) {
+					outputT[i][j] = outputI[i][j];
+				}
+			}
+			//cout << output[0][0];
+			wBias = new double*[lengthOfNN - 1];
+			for(int i = 0; i < lengthOfNN - 1; i++) {
+				wBias[i] = new double[getMaxValue(layerMap, lengthOfNN)];
+			}
+			for(int i = 0; i < lengthOfNN - 1; i++) {
+				for(int j = 0; j < getMaxValue(layerMap, lengthOfNN); j++) {
+					wBias[i][j] = 0;
+				}
+			}
+			dWBias = new double*[lengthOfNN - 1];
+			for(int i = 0; i < lengthOfNN; i++) {
+				dWBias[i] = new double[getMaxValue(layerMap, lengthOfNN)];
+			}
+			for(int i = 0; i < lengthOfNN - 1; i++) {
+				for(int j = 0; j < getMaxValue(layerMap, lengthOfNN); j++) {
+					dWBias[i][j] = 0;
+				}
+			}
+			attachRandomValues(minStartValues, maxStartValues);
+			//cout << "j" << calculate.act(5) << "g";
+		}
+
+		void run() {
+			//cout << dataLength;
+			for(int i = 0; i < dataLength; i++) {
+				feedForward(i);
+				backPropagation(i);
+			}
+		}
+
+		void predict(double* inputI, double* outputI) {
+			for(int j = 0; j < lengthOfNN; j++) {
+				for(int k = 0; k < lengthOfNeurons[j]; k++) {
+					neurons[j][k] = 0;
+				}
+			}
+			for(int j = 0; j < inputLength; j++) {
+				neurons[0][j] = inputI[j];
+			}
+			for(int j = 0; j < lengthOfNN - 1; j++) {
+				for(int k = 0; k < lengthOfNeurons[j + 1]; k++) {
+					for(int t = 0; t < lengthOfNeurons[j]; t++) {
+						neurons[j + 1][k] += neurons[j][t] * weights[j][t][k];
+					}
+					neurons[j + 1][k] += wBias[j][k] * 1;
+					//neurons[j + 1][k] = calculate.act(neurons[j + 1][k]);
+				}
+			}
+			for(int j = 0; j < outputLength; j++) {
+				//cout << neurons[lengthOfNN - 1][0] << "hh";
+				*(outputI + j) = calculate.act(neurons[lengthOfNN - 1][j]);
+			}
+		}
+
+	private :
+		int* layerMap;
+		int* lengthOfWeights;
+		int* lengthOfNeurons;
+		double*** weights;
+		double** neurons;
+		double** input;
+		double** output;
+		double** outputT;
+		int lengthOfNN;
+		int inputLength;
+		int outputLength;
+		int dataLength;
+		double** dNeurons;
+		double** eNeurons;
+		double*** dWeights;
+		NN_Math calculate = NN_Math(0);
+		double learningRate = 0.1;
+		double** wBias;
+		double** dWBias;
+
+		void equalArray(int* target, int* key, int length) {
+			for(int i = 0; i < length; i++) {
+				*(target + i) = *(key + i);
+			}
+		}
+
+		int getMaxValue(int* array, int length) {
+			int biggest = *(array);
+			for(int i = 1; i < length; i++) {
+				biggest = *(array + i) > biggest ? *(array + i) : biggest;
+			}
+			return biggest;
+		}
+
+		void setNN(int i) {
+			for(int j = 0; j < inputLength; j++) {
+				//cout << input[i][j];
+				neurons[0][j] = input[i][j];
+				//cout << "b";
+				//cout << input[i][1] << "j\n";
+			}
+		}
+
+		void backPropagation(int i) {
+			//cout << lengthOfNN - 1;
+			setNN(i);
+			for(int j = 0; j < lengthOfNN; j++) {
+				for(int k = 0; k < lengthOfNeurons[j]; k++) {
+					eNeurons[j][k] = 0;
+					dNeurons[j][k] = 0;
+				}
+			}
+			for(int j = lengthOfNN - 1; j > -1; j--) {
+				for(int t = 0; t < lengthOfNeurons[j]; t++) {
+					if(j == lengthOfNN - 1) {
+						eNeurons[j][t] = outputT[i][t] - output[i][t];
+						dNeurons[j][t] = eNeurons[j][t] * calculate.dAct(neurons[j][t]);
+						//cout << dNeurons[i][t] << " ";
+						//cout << output[i][t];
+						//cout << dNeurons[j][t] << ",";
+					}
+					else {
+						for(int k = 0; k < lengthOfNeurons[j + 1]; k++) {
+							eNeurons[j][t] += weights[j][t][k] * dNeurons[j + 1][k];
+							dWeights[j][t][k] = neurons[j][t] * dNeurons[j + 1][k];
+							dWBias[j][k] = dNeurons[j + 1][k] * 1;
+							weights[j][t][k] += dWeights[j][t][k] * learningRate;
+							wBias[j][k] += dWBias[j][k] * learningRate;
+							//cout << dWeights[j][t][k] << ",";
+						}
+						//cout << "\n";
+						dNeurons[j][t] = eNeurons[j][t] * calculate.dAct(neurons[j][t]);
+						//cout << dNeurons[j][t] << ", " << j << "\n";
+					}
+					//cout << "\n";
+				}
+			}
+			//cout << neurons[0][1] << "\n";
+			/*cout << dWeights[0][0][0] << " , " << dWeights[0][0][1] << "\n";
+			cout << dWeights[0][1][0] << " , " << dWeights[0][1][1] << "\n";
+			cout << dWeights[1][0][0] << " , " << dWeights[1][1][0] << "\n";
+			cout << "-------------------------" << "\n";*/
+			//cout << neurons[2][0] << "\n";
+		}
+
+		void feedForward(int i) {
+			//cout << lengthOfNN;
+			for(int j = 0; j < lengthOfNN; j++) {
+				for(int k = 0; k < lengthOfNeurons[j]; k++) {
+					neurons[j][k] = 0;
+				}
+			}
+			setNN(i);
+			for(int j = 0; j < lengthOfNN - 1; j++) {
+				//cout << "a";
+				for(int k = 0; k < lengthOfNeurons[j + 1]; k++) {
+					for(int t = 0; t < lengthOfNeurons[j]; t++) {
+						neurons[j + 1][k] += neurons[j][t] * weights[j][t][k];
+						//cout << neurons[j + 1][k];
+					}
+					//neurons[j + 1][k] += wBias[j][k] * 1;
+					neurons[j + 1][k] = calculate.act(neurons[j + 1][k]);
+				}
+			}
+			cout << weights[1][0][0] << "er\n";
+			for(int j = 0; j < lengthOfNeurons[lengthOfNN - 1]; j++) {
+				output[i][j] = neurons[lengthOfNN - 1][j];
+			}
+		}
+		double fRand(double fMin, double fMax)
+		{
+		    double f = (double)rand() / RAND_MAX;
+		    return fMin + f * (fMax - fMin);
+		}
+
+		void attachRandomValues(double b1, double b2) {
+			for(int i = 0; i < lengthOfNN - 1; i++) {
+				for(int j = 0; j < getMaxValue(layerMap, lengthOfNN); j++) {
+					for(int k = 0; k < getMaxValue(layerMap, lengthOfNN); k++) {
+						wBias[i][k] = fRand(b1, b2);
+						weights[i][j][k] = fRand(b1, b2);
+						cout << weights[i][j][k] << "\n";
+					}
+				}
+			}
+			/*cout << weights[0][0][0] << " , " << dWeights[0][0][1] << "\n";
+			cout << weights[0][1][0] << " , " << dWeights[0][1][1] << "\n";
+			cout << weights[1][0][0] << " , " << dWeights[1][1][0] << "\n";
+			cout << "-------------------------" << "\n";*/
+		}
+
+};
+
+double fRand(double fMin, double fMax)
+{
+    double f = (double)rand() / RAND_MAX;
+    return fMin + f * (fMax - fMin);
+}
+
+int main() {
+	double jk = 12121;
+	cout << jk;
+	double b1 = -6;
+	double b2 = 2;
+	//cout << ((fmod(rand(), abs(b1 - b2))) + min(b1, b2));
+	double* l = new double[5];
+	//cout << l[1];
+	double** input = new double*[300];
+	double** output = new double*[300];
+	double exampleCount = 300;
+	for(int i = 0; i < exampleCount; i++) {
+		input[i] = new double[2];
+		output[i] = new double[1];
+	}
+	for(int i = 0; i < exampleCount; i++) {
+		double b1 = 10;
+		double b2 = -10;
+		input[i][0] = fRand(b1, b2);
+		input[i][1] = fRand(b1, b2);
+		output[i][0] = input[i][0] > input[i][1] * 0.3 ? 1 : -1;
+	}
+	//cout << input[0][0] << " " << input[0][1] << " " << output[0][0];
+	int layerMap[3] = {2, 2, 1};
+	//NN nerualNetwork = NN(layerMap, 3, input, output, exampleCount, -10, 10);
+	double inputP[2] = {6, 26};
+	double outputP[1] = {0};
+	//nerualNetwork.run();
+	//nerualNetwork.predict(inputP, outputP);
+	cout << outputP[0];
+	cin.get();
+	return 0;
+}
+	
+	#include <iostream>
+#include <cmath>
+
+using namespace std;
+
+double getAngleFromEdge(double target, double a0, double a1);
+double getHipo(double* p0, double* p1);
+
+int main() {
+	int pointsLength = 4;
+	double points[4][2] = {{0, 0}, {0, -4}, {4, -7}, {5, -11}};
+	double lines[3];
+	double angles[2];
+	double pointsNew[3][2];
+	//cout << getAngleFromEdge(5, 3, 4);
+	for(int i = 0; i < pointsLength -1; i++) {
+		lines[i] = getHipo(points[i], points[i + 1]);//sqrt((abs(points[i][0] - points[i + 1][0]) * abs(points[i][0] - points[i + 1][0])) + ((points[i + 1][1] - points[i][1]) * (points[i + 1][1] - points[i][1])));
+		//cout << lines[i] << "as";
+	}
+	for(int i = 0; i < pointsLength - 2; i++) {
+		//cout << lines[0] << " , " << lines[1] << " , " << lines[2] << "\n\n";
+		angles[i] = getAngleFromEdge(getHipo(points[i], points[i + 2]), lines[i], lines[i + 1]);
+		if(abs(points[i][1]) < abs(points[i + 2][1])) {
+			angles[i] = 360 - angles[i];
+		}
+	}
+	cout << angles[1] << "  hh  ";
+	cout << cos((90 * M_PI) / 180) << "asaddaf";
+	cout << lines[0] << " , " << lines[1] << " , " << lines[2] << "\n\n";
+	for(int i = 0; i < pointsLength; i++) {
+		pointsNew[i][0] = points[i][0] * cos((90 * M_PI) / 180) - points[i][1] * sin((90 * M_PI) / 180);
+		pointsNew[i][1] = points[i][0] * sin((90 * M_PI) / 180) + points[i][1] * cos((90 * M_PI) / 180);
+	}
+	/*pointsNew[0][0] = 0;
+	pointsNew[0][1] = 0;
+	pointsNew[1][0] = getHipo(points[0], points[1]);
+	pointsNew[1][1] = 0;
+	double t0 = angles[0] - 180	;
+	double t1 = 90 - t0;
+	cout << "we" << t1 << "er";
+	for(int i = 1; i < pointsLength - 1; i++) {
+		double a = lines[i] * sin((t1 * M_PI) / 180);
+		double b = lines[i] * sin((t0 * M_PI) / 180);
+		pointsNew[i + 1][0] = pointsNew[i][0] + a;
+		pointsNew[i + 1][1] = pointsNew[i][1] + b;
+		if(i <= pointsLength - 2) {
+		if(angles[i] > 90) {
+			t0 = angles[i] - (90 + t1);
+			t1 = 90 - t0;
+			cout << "\n" << t0 << "ty";
+		}}
+	}
+	cout << angles[1] << "df";*/
+	cout << pointsNew[0][0] << " , " << pointsNew[0][1] << "\n";
+	cout << pointsNew[1][0] << " , " << pointsNew[1][1] << "\n";
+	cout << pointsNew[2][0] << " , " << pointsNew[2][1] << "\n";
+	cout << pointsNew[3][0] << " , " << pointsNew[3][1] << "\n";
+
+	//cout << angles[0];
+
+	cin.get();
+	return 0;
+}
+
+double getAngleFromEdge(double target, double a0, double a1) {
+	return (acos(((a0 * a0) + (a1 * a1) - (target * target)) / (2 * a0 * a1)) * 180) / M_PI;
+}
+
+double getHipo(double* p0, double* p1) {
+	return sqrt((abs(p0[0] - p1[0]) * abs(p0[0] - p1[0])) + ((p1[1] - p0[1]) * (p1[1] - p0[1])));
+}
+
+#include <iostream>
+#include <cmath>
+
+using namespace std;
+
+double getAngleFromEdge(double target, double a0, double a1);
+double getHipo(double* p0, double* p1);
+
+int main() {
+	cout << (acos(cos((90 * M_PI) / 180)) * 180) / M_PI << "\n";
+	int widePointsLength = 9;
+	double pointsWide[9][2] = {{0, 8}, {0, 4}, {0, 0}, {0, -4}, {4, -7}, {5, -11}, {0, -12}, {0, -14}, {0, -16}};
+	double** points;
+	int startPoint = -1;
+	int endPoint = -1;
+	double plotBias = 0.1;
+	for(int i = 0; i < widePointsLength - 2; i++) {
+		double plot0 = abs(pointsWide[i][0] - pointsWide[i][0]) == 0 ? 0 : abs(pointsWide[i][1] - pointsWide[i + 1][1]) / abs(pointsWide[i][0] - pointsWide[i][0]);
+		double plot1 = abs(pointsWide[i + 2][0] - pointsWide[i + 1][0]) == 0 ? 0 : abs(pointsWide[i + 1][1] - pointsWide[i + 2][1]) / abs(pointsWide[i + 2][0] - pointsWide[i + 1][0]);
+		if(startPoint == -1 && abs(plot0 - plot1) > plotBias) {
+			startPoint = i;
+		}
+		else if(startPoint != -1 && abs(plot0 - plot1) < plotBias) {
+			endPoint = i;
+		}
+	}
+	points = new double*[abs(endPoint - startPoint) + 2];
+	for(int i = startPoint; i < endPoint + 2; i++) {
+		points[i - startPoint] = new double[2];
+		points[i - startPoint][0] = pointsWide[i][0];
+		points[i - startPoint][1] = pointsWide[i][1];
+	}
+	for(int i = 0; i < endPoint - startPoint + 2; i++) {
+		cout << points[i][0] << " , " << points[i][1] << "\n";
+	}
+	int pointsLength = 6;
+	//double points[6][2] = {{0, 0}, {0, -4}, {4, -7}, {5, -11}, {0, -12}, {0, -14}};
+	double lineLength = getHipo(points[0], points[1]);
+	double newPoint[2] = {lineLength, 0};
+	double otherLine = getHipo(points[1], newPoint);
+	double alpha = getAngleFromEdge(otherLine, lineLength, lineLength);
+	double pointsNew[pointsLength - 2][2];
+
+	for(int i = 1; i < pointsLength - 1; i++) {
+		pointsNew[i - 1][0] = points[i][0] * cos((alpha * M_PI) / 180) - points[i][1] * sin((alpha * M_PI) / 180);
+		pointsNew[i - 1][1] = points[i][0] * sin((alpha * M_PI) / 180) + points[i][1] * cos((alpha * M_PI) / 180);
+	}
+	double xDiff = pointsNew[0][0];
+	double yDiff = pointsNew[0][1];
+	for(int i = 0; i < pointsLength -2; i++) {
+		pointsNew[i][0] -= xDiff;
+		pointsNew[i][1] -= yDiff;
+	}
+
+	double xDistanceArea = pointsNew[pointsLength - 3][0] - pointsNew[0][0];
+	double yDistanceArea = abs(pointsNew[pointsLength - 3][1] - pointsNew[0][1]);
+	double hipoArea = getHipo(pointsNew[pointsLength - 3], pointsNew[0]);
+	double edges[pointsLength - 2];
+	cout << "a" << hipoArea << "a";
+
+	for(int i = 0; i < pointsLength - 2; i++) {
+		edges[i] = abs(pointsNew[i][1] - (abs(pointsNew[0][0] - pointsNew[i][0]) / xDistanceArea) * yDistanceArea);
+	}
+
+	double area = 0;
+	/*area += (pointsNew[1][0] * (pointsNew[1][1] - ((pointsNew[1][0] / xDistanceArea) * yDistanceArea))) / 2;
+	double topLine = 0;
+	double bottomLine = abs(pointsNew[1][1] - ((pointsNew[1][0] / xDistanceArea) * yDistanceArea));*/
+	for(int i = 0; i < pointsLength - 3; i++) {
+		area += ((edges[i] + edges[i + 1]) * abs(pointsNew[i][0] - pointsNew[i + 1][0])) / 2;
+	}
+	cout << "----------------------------\n";
+	cout << pointsNew[0][0] << " , " << pointsNew[0][1] << "\n";
+	cout << pointsNew[1][0] << " , " << pointsNew[1][1] << "\n";
+	cout << pointsNew[2][0] << " , " << pointsNew[2][1] << "\n";
+	cout << pointsNew[3][0] << " , " << pointsNew[3][1] << "\n";
+	cout << "\n" << area;
+	cin.get();
+	return 0;
+}
+
+double getAngleFromEdge(double target, double a0, double a1) {
+	return (acos(((a0 * a0) + (a1 * a1) - (target * target)) / (2 * a0 * a1)) * 180) / M_PI;
+}
+
+double getHipo(double* p0, double* p1) {
+	return sqrt((abs(p0[0] - p1[0]) * abs(p0[0] - p1[0])) + ((p1[1] - p0[1]) * (p1[1] - p0[1])));
+}
+	
